@@ -4,21 +4,30 @@ import platform
 
 PROJECT_ROOT = Path("G:\WORK\TAT_test\project")
 file_template = "{accessory}_{asset}_{status}_{task}_{version}.{extension}"
-work_template = "{accessory}_{asset}/{task}/work"
-publish_template = "{accessory}_{asset}/{task}/publish"
+work_template = "{accessory}_{asset}/{task_folder}/work"
+publish_template = "{accessory}_{asset}/{task_folder}/publish"
 
-representation = {
+mode_representation = {
         "accessory": "A",
         "asset": "Toto",
-        "status": "publish",
         "task": "mode",
+        "task_folder": "mode",
+        "extension": "ma"
+    }
+
+rig_representation = {
+        "accessory": "A",
+        "asset": "Toto",
+        "task": "setup",
+        "task_folder": "rig",
         "extension": "ma"
     }
 
 def import_assets():
+    mode_representation['status'] = "publish"
     published_workfile_path = Path(os.path.join(
         PROJECT_ROOT,
-        publish_template.format(**representation)
+        publish_template.format(**mode_representation)
     ))
 
     latest_published_file, version = get_latest_published_file_and_version(published_workfile_path)
@@ -38,7 +47,7 @@ def import_assets():
 def build_speed_rig():
     mesh = cmds.ls(exactType="mesh", long=True)[0]
     mesh = mesh.split('|')[1]
-    new_name_mesh = f"{representation['asset']}_msh"
+    new_name_mesh = f"{mode_representation['asset']}_msh"
     cmds.rename(mesh, new_name_mesh)
 
     circle_path = os.path.join(PROJECT_ROOT, "circle.ma")
@@ -82,6 +91,34 @@ def build_speed_rig():
     cmds.parent('ctrl', 'ROOT')
 
 
+def publish():
+    rig_representation['status'] = "publish"
+    published_rig_path = Path(os.path.join(
+        PROJECT_ROOT,
+        publish_template.format(**rig_representation)
+    ))
+
+    latest_published_file, version = get_latest_published_file_and_version(published_rig_path)
+    version = f"v{str(version + 1).zfill(3)}"
+    rig_representation['version'] = version
+    publish_filepath = os.path.join(
+        published_rig_path,
+        file_template.format(**rig_representation)
+    )
+
+    rig_representation['status'] = "work"
+    work_filepath = Path(os.path.join(
+        PROJECT_ROOT,
+        work_template.format(**rig_representation),
+        file_template.format(**rig_representation)
+    ))
+
+    cmds.file(rename=publish_filepath)
+    cmds.file(save=True, type="mayaAscii")
+    cmds.file(rename=work_filepath)
+    cmds.file(save=True, type="mayaAscii")
+
+
 def get_latest_published_file_and_version(path):
     published_files = {}
     versions = []
@@ -99,3 +136,4 @@ def get_latest_published_file_and_version(path):
 
 import_assets()
 build_speed_rig()
+publish()
